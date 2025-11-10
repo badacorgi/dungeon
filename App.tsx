@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // --- 타입 정의 ---
@@ -357,7 +356,7 @@ function App() {
     }
   }, [monsterStats.hp, gameState, isSpecialStage, stage]);
 
-  // 스킬 쿨타임
+// 스킬 쿨타임
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -590,7 +589,7 @@ function App() {
     return () => clearInterval(intervalId);
   }, [gameState, isAutoAttack, effectivePlayerStats.attackInterval, performManualAttack]);
 
-  // Monster auto-attack
+// Monster auto-attack
   useEffect(() => {
     if (gameState !== 'playing' || monsterStats.hp <= 0 || isSpecialStage) return;
 
@@ -680,4 +679,149 @@ function App() {
               <div className="w-1/3 p-4 bg-gray-800 rounded-lg shadow-lg text-center flex flex-col h-full">
                 <h2 className={`text-2xl font-bold mb-4 ${monsterStats.isEmpowered && !isSpecialStage ? 'text-red-400' : ''}`}>{monsterName}</h2>
                 <div className={`relative h-40 flex justify-center items-center ${!isAutoAttack && gameState === 'playing' ? 'cursor-pointer' : ''}`} onClick={!isAutoAttack ? performManualAttack : undefined}>
-                   <div className={`text-8xl transition-transform duration-200 ${monsterAnimation === 'attacking' ? 'animate-monster-attack-shake' : ''} ${monsterAnimation === 'hit' ? 'animate-flash-red'
+                   {/* --- 여기가 수정된 라인입니다 --- */}
+                   <div className={`text-8xl transition-transform duration-200 ${monsterAnimation === 'attacking' ? 'animate-monster-attack-shake' : ''} ${monsterAnimation === 'hit' ? 'animate-flash-red' : ''}`}>
+                      {isSpecialStage ? '🏃' : '👹'}
+                    </div>
+                  {damageDealt && <DamageText damage={damageDealt.value} isPlayer={true} isSkill={damageDealt.isSkill} isUltimate={damageDealt.isUltimate} />}
+                </div>
+                <div className="mt-auto space-y-2">
+                  <HealthBar current={effectiveMonsterStats.hp} max={effectiveMonsterStats.maxHp} />
+                  <p className="mt-2 text-lg">체력: {effectiveMonsterStats.hp} / {effectiveMonsterStats.maxHp}</p>
+                  <p>공격력: {effectiveMonsterStats.attack}</p>
+                  <p>방어력: {effectiveMonsterStats.defense} {monsterDebuffs.defenseReduction > 0 && <span className="text-red-400">(-{monsterDebuffs.defenseReduction * 100}%)</span>}</p>
+                  {isSpecialStage && (
+                    <p className="text-yellow-400 font-bold text-lg">
+                      도망까지: {specialStageTimer.toFixed(1)}초
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={handlePauseResume} className="absolute top-4 right-4 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">
+              {gameState === 'paused' ? '계속하기' : '일시정지'}
+            </button>
+          </div>
+        );
+      case 'upgrade':
+        return (
+          <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg animate-fade-in w-full max-w-3xl">
+            <h2 className="text-4xl font-bold mb-4">{isSpecialStage ? '고블린이 도망쳤습니다!' : '스테이지 클리어!'}</h2>
+            
+            {lastReward > 0 && <p className="text-2xl text-yellow-400 mb-2">업그레이드 포인트 +{lastReward}</p>}
+            {lastCoinReward > 0 && <p className="text-2xl text-green-400 mb-6">코인 +{lastCoinReward}</p>}
+
+            {showSkillChoice && !isReplacingSkill && (
+              <div className="mb-8">
+                <h3 className="text-3xl font-bold mb-4">{playerSkills.length < MAX_SKILLS ? '새로운 스킬을 선택하세요!' : '스킬을 교체하시겠습니까?'}</h3>
+                {skillChoices.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {skillChoices.map(skill => (
+                      <button
+                        key={skill.id}
+                        onClick={() => handleSelectSkill(skill)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                      >
+                        <h4 className="text-xl font-bold mb-2">{skill.name}</h4>
+                        <p className="text-sm">{skill.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                   <p className="text-lg">배울 수 있는 새로운 스킬이 없습니다.</p>
+                )}
+              </div>
+            )}
+            
+            {isReplacingSkill && skillToLearn && (
+                <div className="mb-8 p-4 bg-gray-900 rounded-lg">
+                    <h3 className="text-2xl font-bold mb-4 text-yellow-400">교체할 스킬을 선택하세요</h3>
+                    <p className="mb-4">새로 배울 스킬: <span className="font-bold">{skillToLearn.name}</span> - {skillToLearn.description}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        {playerSkills.map((skill, index) => (
+                            <button
+                                key={index}
+                                onClick={() => handleReplaceSkill(index)}
+                                className="bg-red-700 hover:bg-red-800 text-white p-4 rounded-lg shadow-lg transition-transform transform hover:scale-105"
+                            >
+                                <h4 className="text-lg font-bold mb-1">{skill.name}</h4>
+                                <p className="text-xs">{skill.description}</p>
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={handleCancelReplace}
+                        className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg"
+                    >
+                        교체 취소
+                    </button>
+                </div>
+            )}
+
+            {!showSkillChoice && (
+                 <div className="mb-8">
+                    <h3 className="text-3xl font-bold mb-6">스탯 업그레이드 (남은 포인트: {upgradePoints})</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      <button onClick={() => handleUpgrade('maxHp')} disabled={upgradePoints <= 0} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        최대 체력 +10 (HP: {playerStats.maxHp})
+                      </button>
+                      <button onClick={() => handleUpgrade('attack')} disabled={upgradePoints <= 0} className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        공격력 +2 (ATK: {playerStats.attack})
+                      </button>
+                      <button onClick={() => handleUpgrade('defense')} disabled={upgradePoints <= 0} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        방어력 +1 (DEF: {playerStats.defense})
+                      </button>
+                      <button onClick={() => handleUpgrade('attackInterval')} disabled={upgradePoints <= 0 || playerStats.attackInterval <= 100} className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed">
+                        공격 속도 -50ms (AS: {playerStats.attackInterval}ms)
+                      </button>
+                    </div>
+                </div>
+            )}
+
+             <div className="border-t border-gray-700 pt-6">
+                <h3 className="text-2xl font-bold mb-4">상점 (보유 코인: {coins} 🪙)</h3>
+                <button
+                  onClick={handleGachaPull}
+                  disabled={coins < 50}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg disabled:bg-gray-600 disabled:cursor-not-allowed"
+                >
+                  랜덤 능력치 뽑기 (50 🪙)
+                </button>
+                {gachaResult && <p className="mt-4 text-xl text-yellow-300 animate-fade-in">{gachaResult}</p>}
+             </div>
+
+            <button onClick={handleNextStage} disabled={showSkillChoice} className="mt-8 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-lg text-2xl transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed">
+              다음 스테이지
+            </button>
+          </div>
+        );
+      case 'gameOver':
+        return (
+          <div className="text-center p-8 bg-gray-800 rounded-lg shadow-lg animate-fade-in">
+            <h2 className="text-5xl font-bold text-red-500 mb-4">게임 오버</h2>
+            <p className="text-3xl mb-8">도달한 스테이지: {stage}</p>
+            <button onClick={handleRestart} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-10 rounded-lg text-2xl transition-colors">
+              다시 시작
+            </button>
+          </div>
+        );
+    }
+    return null;
+  };
+
+  return (
+    <div className={`flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white p-8 ${screenShake ? 'animate-screen-shake' : ''}`}>
+      <div className="absolute top-4 left-4 text-2xl font-bold">
+        {gameState === 'playing' && (isBossStage ? `스테이지: ${stage} (보스)` : `스테이지: ${stage}`)}
+        {gameState === 'playing' && isSpecialStage && '특수 스테이지!'}
+      </div>
+      <div className="absolute top-4 right-4 text-2xl font-bold">
+        {coins} 🪙
+      </div>
+      {renderGameContent()}
+    </div>
+  );
+}
+
+export default App;
